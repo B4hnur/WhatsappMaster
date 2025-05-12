@@ -12,9 +12,13 @@ class WhatsAppCloudAPI {
      * Constructor
      */
     public function __construct() {
-        // API məlumatlarını mühit dəyişənlərindən əldə et
-        $this->apiToken = getenv('WHATSAPP_API_TOKEN');
-        $this->phoneNumberId = getenv('WHATSAPP_PHONE_NUMBER_ID');
+        // API məlumatlarını müxtəlif ətraf mühit dəyişənləri mənbələrindən əldə et
+        $this->apiToken = $_SERVER['WHATSAPP_API_TOKEN'] ?? $_ENV['WHATSAPP_API_TOKEN'] ?? getenv('WHATSAPP_API_TOKEN');
+        $this->phoneNumberId = $_SERVER['WHATSAPP_PHONE_NUMBER_ID'] ?? $_ENV['WHATSAPP_PHONE_NUMBER_ID'] ?? getenv('WHATSAPP_PHONE_NUMBER_ID');
+        
+        // Debug məlumatları
+        error_log("WhatsApp API Token: " . substr($this->apiToken, 0, 5) . "...");
+        error_log("WhatsApp Phone ID: " . $this->phoneNumberId);
         
         // API məlumatlarının var olduğunu yoxla
         if (empty($this->apiToken) || empty($this->phoneNumberId)) {

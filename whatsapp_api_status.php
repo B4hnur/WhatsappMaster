@@ -76,7 +76,10 @@ include 'includes/header.php';
                     
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">WhatsApp API Token:</h6>
-                        <?php if (getenv('WHATSAPP_API_TOKEN')): ?>
+                        <?php 
+                        $token = $_SERVER['WHATSAPP_API_TOKEN'] ?? $_ENV['WHATSAPP_API_TOKEN'] ?? getenv('WHATSAPP_API_TOKEN');
+                        if (!empty($token)): 
+                        ?>
                             <span class="badge bg-success"><i class="fas fa-check"></i> Mövcuddur</span>
                         <?php else: ?>
                             <span class="badge bg-danger"><i class="fas fa-times"></i> Yoxdur</span>
@@ -85,7 +88,10 @@ include 'includes/header.php';
                     
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Telefon Nömrə ID:</h6>
-                        <?php if (getenv('WHATSAPP_PHONE_NUMBER_ID')): ?>
+                        <?php 
+                        $phoneId = $_SERVER['WHATSAPP_PHONE_NUMBER_ID'] ?? $_ENV['WHATSAPP_PHONE_NUMBER_ID'] ?? getenv('WHATSAPP_PHONE_NUMBER_ID');
+                        if (!empty($phoneId)): 
+                        ?>
                             <span class="badge bg-success"><i class="fas fa-check"></i> Mövcuddur</span>
                         <?php else: ?>
                             <span class="badge bg-danger"><i class="fas fa-times"></i> Yoxdur</span>

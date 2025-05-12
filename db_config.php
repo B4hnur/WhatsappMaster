@@ -1,4 +1,7 @@
 <?php
+// Ətraf mühit dəyişənlərini yüklə
+require_once 'load_env.php';
+
 // Database configuration
 $host = "localhost";
 $dbname = "whatsapp_messenger";
