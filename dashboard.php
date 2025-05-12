@@ -53,10 +53,37 @@ try {
         </div>
     </div>
     
-    <?php if (empty($whatsappNumber)): ?>
+    <?php 
+    // Check WhatsApp connection status
+    $whatsapp_status = 'disconnected';
+    try {
+        $stmt = $conn->prepare("SELECT status FROM whatsapp_sessions WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $session = $stmt->fetch();
+        if ($session) {
+            $whatsapp_status = $session['status'];
+        }
+    } catch (PDOException $e) {
+        error_log("Error checking WhatsApp status: " . $e->getMessage());
+    }
+    ?>
+    
+    <?php if ($whatsapp_status == 'connected'): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>WhatsApp bağlıdır!</strong> Artıq əlaqələrinizə birbaşa mesaj göndərə bilərsiniz.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php elseif (empty($whatsappNumber)): ?>
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-triangle me-2"></i>
         <strong>Diqqət!</strong> WhatsApp nömrənizi təyin etməmisiniz. Mesaj göndərmək üçün profil parametrlərinizdə nömrənizi təyin edin.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php else: ?>
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>WhatsApp bağlantısı!</strong> Mesajları birbaşa göndərmək üçün <a href="whatsapp_connect.php" class="alert-link">WhatsApp-ı bağlayın</a>.
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <?php endif; ?>
@@ -206,6 +233,17 @@ try {
                         <a href="messages.php" class="btn btn-outline-info btn-lg">
                             <i class="fas fa-paper-plane me-2"></i>Mesaj göndər
                         </a>
+                        
+                        <?php if ($whatsapp_status != 'connected'): ?>
+                        <a href="whatsapp_connect.php" class="btn btn-outline-success btn-lg">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp-ı bağla
+                        </a>
+                        <?php else: ?>
+                        <a href="whatsapp_connect.php" class="btn btn-success btn-lg">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp bağlıdır
+                            <span class="badge bg-light text-success ms-2"><i class="fas fa-check"></i></span>
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

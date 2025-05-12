@@ -29,23 +29,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
     
+    // Check if WhatsApp is connected
+    $useDirectSend = false;
     try {
-        // Get user's WhatsApp number
-        $stmt = $conn->prepare("SELECT whatsapp_number FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT status FROM whatsapp_sessions WHERE user_id = ? AND status = 'connected'");
         $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch();
-        
-        if (empty($user['whatsapp_number'])) {
-            $_SESSION['error'] = "WhatsApp nömrəniz təyin edilməyib. Profil parametrlərinizdə nömrənizi təyin edin.";
-            header("Location: messages.php");
-            exit();
+        if ($stmt->rowCount() > 0) {
+            $useDirectSend = true;
         }
-        
+    } catch (PDOException $e) {
+        error_log("Error checking WhatsApp connection: " . $e->getMessage());
+    }
+    
+    try {
         // Start transaction
         $conn->beginTransaction();
         
         $successCount = 0;
         $errorCount = 0;
+        $contactsForWhatsApp = [];
         
         foreach ($contact_ids as $contact_id) {
             // Verify contact belongs to user
@@ -57,6 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Log message to history
                 $stmt = $conn->prepare("INSERT INTO message_history (user_id, contact_id, template_id, message) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$_SESSION['user_id'], $contact_id, $template_id, $message]);
+                
+                // Add to contacts list for WhatsApp
+                $contactsForWhatsApp[] = [
+                    'id' => $contact['id'],
+                    'name' => $contact['name'],
+                    'phone' => $contact['phone']
+                ];
                 
                 $successCount++;
             } else {
@@ -77,26 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['error'] = "Mesaj göndərmək mümkün olmadı.";
         }
         
-        // Prepare contacts for JavaScript to send messages
-        $contactsForWhatsApp = [];
-        foreach ($contact_ids as $contact_id) {
-            $stmt = $conn->prepare("SELECT * FROM contacts WHERE id = ? AND user_id = ?");
-            $stmt->execute([(int)$contact_id, $_SESSION['user_id']]);
-            $contact = $stmt->fetch();
-            
-            if ($contact) {
-                $contactsForWhatsApp[] = [
-                    'id' => $contact['id'],
-                    'name' => $contact['name'],
-                    'phone' => $contact['phone']
-                ];
-            }
-        }
-        
-        // Set message data in session for JavaScript to use
+        // Set message data in session
         $_SESSION['whatsapp_message_data'] = [
             'message' => $message,
-            'contacts' => $contactsForWhatsApp
+            'contacts' => $contactsForWhatsApp,
+            'direct_send' => $useDirectSend
         ];
         
     } catch (PDOException $e) {
@@ -106,7 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Redirect to the message sending page with WhatsApp window opening instructions
-header("Location: whatsapp_redirect.php");
+// Redirect to appropriate page based on WhatsApp connection
+if (isset($_SESSION['whatsapp_message_data']['direct_send']) && $_SESSION['whatsapp_message_data']['direct_send']) {
+    header("Location: whatsapp_direct.php");
+} else {
+    header("Location: whatsapp_redirect.php");
+}
 exit();
 ?>

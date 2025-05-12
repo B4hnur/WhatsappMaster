@@ -49,8 +49,32 @@ CREATE TABLE IF NOT EXISTS message_history (
     FOREIGN KEY (template_id) REFERENCES message_templates(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- WhatsApp session management
+CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    session_data TEXT,
+    status ENUM('disconnected', 'pending', 'connected') DEFAULT 'disconnected',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- WhatsApp activity logs
+CREATE TABLE IF NOT EXISTS whatsapp_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    log_type VARCHAR(50) NOT NULL,
+    log_data TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create indexes for performance
 CREATE INDEX idx_contacts_user_id ON contacts(user_id);
 CREATE INDEX idx_templates_user_id ON message_templates(user_id);
 CREATE INDEX idx_history_user_id ON message_history(user_id);
 CREATE INDEX idx_history_contact_id ON message_history(contact_id);
+CREATE INDEX idx_whatsapp_sessions_user_id ON whatsapp_sessions(user_id);
+CREATE INDEX idx_whatsapp_logs_user_id ON whatsapp_logs(user_id);
+CREATE INDEX idx_whatsapp_logs_type ON whatsapp_logs(log_type);

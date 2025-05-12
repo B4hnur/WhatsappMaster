@@ -1,0 +1,216 @@
+<?php
+require_once 'db_config.php';
+requireLogin();
+
+// WhatsApp Web Integration
+class WhatsAppClient {
+    private $user_id;
+    private $status = 'disconnected';
+    private $session_data = null;
+    
+    public function __construct($user_id) {
+        $this->user_id = $user_id;
+        $this->loadSession();
+    }
+    
+    private function loadSession() {
+        global $conn;
+        
+        try {
+            // Check if user has an active WhatsApp session
+            $stmt = $conn->prepare("SELECT session_data, status FROM whatsapp_sessions WHERE user_id = ?");
+            $stmt->execute([$this->user_id]);
+            $session = $stmt->fetch();
+            
+            if ($session) {
+                $this->status = $session['status'];
+                $this->session_data = json_decode($session['session_data'], true);
+            }
+        } catch (PDOException $e) {
+            error_log("WhatsApp session load error: " . $e->getMessage());
+        }
+    }
+    
+    public function getStatus() {
+        return $this->status;
+    }
+    
+    public function generateQRCode() {
+        // In a real implementation, this would generate an actual QR code
+        // For this example, we'll simulate it
+        $qr_data = bin2hex(random_bytes(32));
+        
+        try {
+            global $conn;
+            // Update session data with new QR code
+            $session_data = json_encode(['qr_code' => $qr_data, 'timestamp' => time()]);
+            
+            // Check if session exists
+            $stmt = $conn->prepare("SELECT id FROM whatsapp_sessions WHERE user_id = ?");
+            $stmt->execute([$this->user_id]);
+            
+            if ($stmt->rowCount() > 0) {
+                $stmt = $conn->prepare("UPDATE whatsapp_sessions SET session_data = ?, status = 'pending' WHERE user_id = ?");
+                $stmt->execute([$session_data, $this->user_id]);
+            } else {
+                $stmt = $conn->prepare("INSERT INTO whatsapp_sessions (user_id, session_data, status) VALUES (?, ?, 'pending')");
+                $stmt->execute([$this->user_id, $session_data]);
+            }
+            
+            $this->status = 'pending';
+            $this->session_data = ['qr_code' => $qr_data];
+            
+            return $qr_data;
+        } catch (PDOException $e) {
+            error_log("WhatsApp QR code generation error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function simulateConnection() {
+        try {
+            global $conn;
+            // In a real implementation, this would be called when a WebSocket confirms connection
+            $session_data = json_encode([
+                'connected_at' => time(),
+                'device_info' => [
+                    'platform' => 'Web',
+                    'browser' => 'Chrome',
+                ]
+            ]);
+            
+            $stmt = $conn->prepare("UPDATE whatsapp_sessions SET session_data = ?, status = 'connected' WHERE user_id = ?");
+            $stmt->execute([$session_data, $this->user_id]);
+            
+            $this->status = 'connected';
+            $this->session_data = json_decode($session_data, true);
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("WhatsApp connection simulation error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function disconnect() {
+        try {
+            global $conn;
+            $stmt = $conn->prepare("UPDATE whatsapp_sessions SET status = 'disconnected' WHERE user_id = ?");
+            $stmt->execute([$this->user_id]);
+            
+            $this->status = 'disconnected';
+            $this->session_data = null;
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("WhatsApp disconnect error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function sendMessage($phone, $message) {
+        if ($this->status !== 'connected') {
+            return ['success' => false, 'error' => 'WhatsApp session disconnected'];
+        }
+        
+        // In a real implementation, this would use the WhatsApp Web API or WebSocket
+        // to send the message directly through the connected WhatsApp Web instance
+        // For this simulation, we'll just log it and return success
+        
+        try {
+            global $conn;
+            // Log this message send attempt
+            $log_data = json_encode([
+                'phone' => $phone,
+                'message_preview' => mb_substr($message, 0, 100),
+                'timestamp' => time()
+            ]);
+            
+            $stmt = $conn->prepare("INSERT INTO whatsapp_logs (user_id, log_type, log_data) VALUES (?, 'message_sent', ?)");
+            $stmt->execute([$this->user_id, $log_data]);
+            
+            return ['success' => true];
+        } catch (PDOException $e) {
+            error_log("WhatsApp message send error: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Database error'];
+        }
+    }
+}
+
+// API endpoint logic
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Make sure it's a valid AJAX request
+    if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+        die(json_encode(['success' => false, 'error' => 'Invalid request']));
+    }
+    
+    // Verify CSRF token
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        die(json_encode(['success' => false, 'error' => 'Invalid CSRF token']));
+    }
+    
+    $action = isset($_POST['action']) ? $_POST['action'] : '';
+    $client = new WhatsAppClient($_SESSION['user_id']);
+    
+    switch ($action) {
+        case 'get_status':
+            echo json_encode(['success' => true, 'status' => $client->getStatus()]);
+            break;
+            
+        case 'generate_qr':
+            $qr_code = $client->generateQRCode();
+            if ($qr_code) {
+                echo json_encode(['success' => true, 'qr_code' => $qr_code]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Could not generate QR code']);
+            }
+            break;
+            
+        case 'connect':
+            // For simulation purposes only
+            $result = $client->simulateConnection();
+            echo json_encode(['success' => $result]);
+            break;
+            
+        case 'disconnect':
+            $result = $client->disconnect();
+            echo json_encode(['success' => $result]);
+            break;
+            
+        case 'send_message':
+            if (!isset($_POST['phone']) || !isset($_POST['message'])) {
+                echo json_encode(['success' => false, 'error' => 'Missing phone or message']);
+                break;
+            }
+            
+            $phone = trim($_POST['phone']);
+            $message = trim($_POST['message']);
+            
+            // Validate
+            if (empty($phone) || empty($message)) {
+                echo json_encode(['success' => false, 'error' => 'Phone or message cannot be empty']);
+                break;
+            }
+            
+            // Format phone
+            $phone = preg_replace('/\D/', '', $phone);
+            if (!preg_match('/^994/', $phone)) {
+                $phone = "994" . ltrim($phone, '0');
+            }
+            
+            $result = $client->sendMessage($phone, $message);
+            echo json_encode($result);
+            break;
+            
+        default:
+            echo json_encode(['success' => false, 'error' => 'Unknown action']);
+            break;
+    }
+    
+    exit();
+}
+
+// If not a POST request, redirect to messages page
+header("Location: messages.php");
+exit();
+?>

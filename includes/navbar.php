@@ -21,6 +21,36 @@
                     <li class="nav-item">
                         <a class="nav-link" href="templates.php"><i class="fas fa-file-alt me-1"></i>Şablonlar</a>
                     </li>
+                    
+                    <?php
+                    // Check WhatsApp connection status
+                    try {
+                        $whatsapp_status = 'disconnected';
+                        $stmt = $conn->prepare("SELECT status FROM whatsapp_sessions WHERE user_id = ?");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $session = $stmt->fetch();
+                        
+                        if ($session) {
+                            $whatsapp_status = $session['status'];
+                        }
+                    } catch (PDOException $e) {
+                        $whatsapp_status = 'error';
+                    }
+                    ?>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="whatsapp_connect.php">
+                            <i class="fab fa-whatsapp me-1"></i>
+                            <?php if ($whatsapp_status == 'connected'): ?>
+                                <span class="badge bg-success">Bağlı</span>
+                            <?php elseif ($whatsapp_status == 'pending'): ?>
+                                <span class="badge bg-warning text-dark">Gözləyir</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Bağlı deyil</span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
+                    
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($_SESSION['username']); ?>
