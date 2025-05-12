@@ -252,6 +252,10 @@ try {
                         <a href="send_whatsapp_api.php" class="btn btn-outline-danger btn-lg">
                             <i class="fas fa-paper-plane me-2"></i>API ilə Mesaj Göndər
                         </a>
+                        
+                        <a href="quick_send.php" class="btn btn-outline-success btn-lg">
+                            <i class="fas fa-bolt me-2"></i>Sürətli Göndər
+                        </a>
                     </div>
                 </div>
             </div>

@@ -41,6 +41,10 @@
                                 <a class="dropdown-item" href="send_whatsapp_api.php">
                                     <i class="fas fa-paper-plane me-1"></i>API ilə mesaj göndər
                                 </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="quick_send.php">
+                                    <i class="fas fa-bolt me-1"></i>Sürətli Mesaj Göndər
+                                </a>
                             </li>
                         </ul>
                     </li>
