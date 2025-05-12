@@ -244,10 +244,10 @@ $csrf_token = generateCSRFToken();
                         const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
                         const qrData = data.qr_code || 'whatsapp_' + sessionId;
                         
-                        // Create actual QR code using our simple QR generator
+                        // Create actual QR code using Flask QR generator
                         qrContainer.innerHTML = `
                             <div class="qr-code-display border p-4 mb-4 d-inline-block">
-                                <img src="simple_qr.php?text=${encodeURIComponent('whatsapp-connect:' + qrData)}&size=250" 
+                                <img src="/generate_qr?text=${encodeURIComponent('whatsapp-connect:' + qrData)}&size=250" 
                                      alt="WhatsApp QR Code" 
                                      style="width: 256px; height: 256px;">
                             </div>

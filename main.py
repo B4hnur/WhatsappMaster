@@ -2,8 +2,11 @@ import sys
 import os
 import time
 import subprocess
-from flask import Flask, request, send_from_directory, render_template_string, Response, redirect
+import io
+import qrcode
+from flask import Flask, request, send_from_directory, render_template_string, Response, redirect, make_response
 import logging
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -197,6 +200,26 @@ def info():
 </body>
 </html>"""
     return render_template_string(html)
+
+# QR Code generator route
+@app.route('/generate_qr')
+def generate_qr():
+    # Get parameters from request
+    text = request.args.get('text', 'Default QR Code')
+    size = int(request.args.get('size', 200))
+    
+    # Create QR code directly
+    img = qrcode.make(text)
+    
+    # Save to memory buffer
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format='PNG')
+    img_bytes.seek(0)
+    
+    # Return image
+    response = make_response(img_bytes.getvalue())
+    response.headers.set('Content-Type', 'image/png')
+    return response
 
 # Generic route to handle all PHP files
 @app.route('/<path:path>')
