@@ -1,87 +1,217 @@
-from flask import Flask, send_from_directory, render_template_string, request, redirect
+import sys
 import os
+import time
+import subprocess
+from flask import Flask, request, send_from_directory, render_template_string, Response, redirect
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Simple handler to serve PHP files directly as static files
+# Start PHP server
+php_process = None
+
+def start_php_server():
+    global php_process
+    
+    # First check if PHP is installed
+    try:
+        version_output = subprocess.check_output(['php', '-v'], stderr=subprocess.STDOUT, text=True)
+        logger.info(f"PHP is installed: {version_output.splitlines()[0]}")
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
+        logger.error(f"PHP is not available: {e}")
+        return False
+    
+    # Run the create_tables.php script to ensure tables exist
+    try:
+        logger.info("Running create_tables.php to ensure database schema...")
+        subprocess.run(['php', 'create_tables.php'], check=True, capture_output=True, text=True)
+        logger.info("Tables created or verified successfully")
+    except subprocess.SubprocessError as e:
+        logger.warning(f"Could not run create_tables.php: {e}")
+    
+    # Start PHP built-in server
+    try:
+        logger.info("Starting PHP server...")
+        cmd = ['php', '-S', '127.0.0.1:8000', '-t', '.']
+        php_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)  # Give it some time to start
+        
+        # Check if process is running
+        if php_process.poll() is None:
+            logger.info("PHP server started successfully")
+            return True
+        else:
+            stdout, stderr = php_process.communicate()
+            logger.error(f"PHP server failed to start: {stderr.decode()}")
+            return False
+    except Exception as e:
+        logger.error(f"Error starting PHP server: {e}")
+        return False
+
+# Helper function to proxy PHP file
+def proxy_php_file(file_path='index.php'):
+    try:
+        # Simply serve the file
+        return send_from_directory('.', file_path)
+    except Exception as e:
+        logger.error(f"Error serving {file_path}: {e}")
+        return f"Error: {str(e)}", 500
+
+# Routes
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.php')
+    return redirect('/info')
 
+@app.route('/info')
+def info():
+    html = """<!DOCTYPE html>
+<html data-bs-theme="dark">
+<head>
+    <title>WhatsApp Mesaj Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { padding-top: 20px; }
+        .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+        .file-list { font-family: monospace; }
+        .highlight-text { color: #25D366; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Demo rejimində:</strong> Bu sayt demo məqsədi ilə hazırlanmışdır. Öz serverinizdə işlətmək üçün PHP və MySQL lazımdır.
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1><i class="fab fa-whatsapp text-success me-2"></i>WhatsApp Mesaj Sistemi</h1>
+                <p class="lead">WhatsApp ilə birbaşa inteqrasiya olunan əlaqə və mesaj idarəetmə sistemi.</p>
+                
+                <div class="mb-4">
+                    <h4>Sistem tələbləri:</h4>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex align-items-center">
+                            <i class="fab fa-php me-3 text-primary"></i>
+                            PHP 7.4 və ya daha yüksək
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <i class="fas fa-database me-3 text-info"></i>
+                            MySQL verilənlər bazası
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <i class="fab fa-whatsapp me-3 text-success"></i>
+                            WhatsApp Web əlyetənliyi
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Təmir edildi:</strong> QR kod xətası həll edildi və sistem daha etibarlı oldu.
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card border-0 shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Sistemin xüsusiyyətləri</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-6">
+                                <div class="text-center text-success feature-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <h5 class="text-center">Əlaqə İdarəetməsi</h5>
+                                <p class="text-center small">Əlaqələr yaradın, redaktə edin, silin və qruplaşdırın.</p>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center text-info feature-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <h5 class="text-center">Mesaj Şablonları</h5>
+                                <p class="text-center small">Tez-tez istifadə olunan mesajları saxlayın və tətbiq edin.</p>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center text-warning feature-icon">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                                <h5 class="text-center">QR Kod İnteqrasiyası</h5>
+                                <p class="text-center small">WhatsApp hesabınızı birbaşa qoşun.</p>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center text-danger feature-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <h5 class="text-center">Sürətli Göndərmə</h5>
+                                <p class="text-center small">Bir kliklə WhatsApp mesajları göndərin.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-code me-2"></i>Yenilikləri sınayın</h5>
+            </div>
+            <div class="card-body">
+                <p>Sistemin müxtəlif hissələrini test edin:</p>
+                <div class="list-group mb-3">
+                    <a href="/whatsapp_connect.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fab fa-whatsapp text-success me-2"></i>
+                            WhatsApp Bağlantısı
+                            <small class="d-block text-muted">QR kod ilə WhatsApp hesabınızı qoşun</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">YENİ</span>
+                    </a>
+                    <a href="/register.php" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Qeydiyyat
+                        <small class="d-block text-muted">Yeni hesab yaradın</small>
+                    </a>
+                    <a href="/login.php" class="list-group-item list-group-item-action">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Giriş
+                        <small class="d-block text-muted">Hesabınıza daxil olun</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="border-top pt-4 text-center text-muted">
+            <p>WhatsApp Mesaj Sistemi &copy; 2025</p>
+        </footer>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>"""
+    return render_template_string(html)
+
+# Generic route to handle all PHP files
 @app.route('/<path:path>')
 def serve_file(path):
     if os.path.exists(path):
         return send_from_directory('.', path)
     else:
-        return f"File not found: {path}", 404
-
-# We'll create a simple information page
-@app.route('/info')
-def info():
-    html = """<!DOCTYPE html>
-<html>
-<head>
-    <title>PHP WhatsApp Messaging System</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .alert { padding: 15px; border-radius: 4px; background-color: #d4edda; color: #155724; margin-bottom: 20px; }
-        h1 { color: #25D366; }
-        p { margin-bottom: 10px; }
-        code { background-color: #f1f1f1; padding: 2px 4px; border-radius: 3px; }
-        ul { margin-bottom: 20px; }
-        .features { display: flex; flex-wrap: wrap; }
-        .feature { flex: 1 0 48%; padding: 10px; }
-        .highlight { font-weight: bold; color: #25D366; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="alert">
-            Bu sayt hosting konfiqurasiyası üçün hazırlanmışdır. PHP və MySQL bazası olan serverdə işləməsi üçün nəzərdə tutulub.
-        </div>
-        
-        <h1>WhatsApp Mesaj Sistemi</h1>
-        
-        <p>Bu sistem .php fayllardan ibarətdir və WhatsApp mesajlarını avtomatlaşdırmaq üçün yaradılmışdır. Öz serverinizə yerləşdirmək üçün:</p>
-        
-        <ul>
-            <li>PHP 7.4 və ya daha yüksək versiya lazımdır</li>
-            <li>MySQL verilənlər bazası lazımdır</li>
-            <li>Bütün faylları server qovluğuna köçürün</li>
-            <li><code>db_config.php</code> faylında verilənlər bazası ayarlarını dəyişdirin</li>
-            <li><code>sql/database.sql</code> faylını verilənlər bazasında icra edin</li>
-        </ul>
-        
-        <h2>Sistemin Funksionallikları</h2>
-        
-        <div class="features">
-            <div class="feature">
-                <h3>✓ İstifadəçi idarəetməsi</h3>
-                <p>Qeydiyyat, giriş, təhlükəsiz sessiyalar</p>
-            </div>
-            
-            <div class="feature">
-                <h3>✓ Əlaqələr idarəetməsi</h3>
-                <p>Əlaqələri əlavə edin, redaktə edin, silin</p>
-            </div>
-            
-            <div class="feature">
-                <h3>✓ Mesaj şablonları</h3>
-                <p>Tez-tez istifadə edilən mesajları şablonlar kimi saxlayın</p>
-            </div>
-            
-            <div class="feature">
-                <h3>✓ WhatsApp inteqrasiyası</h3>
-                <p>Mesajları WhatsApp nömrələrinə göndərin</p>
-            </div>
-        </div>
-        
-        <p class="highlight">Bu sistem API istifadə etmir - WhatsApp Web URL sxemindən istifadə edir ki, mesajlar göndərilsin.</p>
-    </div>
-</body>
-</html>"""
-    return render_template_string(html)
+        return redirect('/info')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Start PHP server before Flask
+    if start_php_server():
+        logger.info("PHP server running, starting Flask app")
+    else:
+        logger.warning("PHP server not started, some features may not work")
+
+    # Start Flask app
+    app.run(host='0.0.0.0', port=5000, debug=True)
