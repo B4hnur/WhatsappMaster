@@ -244,6 +244,14 @@ try {
                             <span class="badge bg-light text-success ms-2"><i class="fas fa-check"></i></span>
                         </a>
                         <?php endif; ?>
+                        
+                        <a href="whatsapp_api_status.php" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-cloud me-2"></i>WhatsApp API Statusu
+                        </a>
+                        
+                        <a href="send_whatsapp_api.php" class="btn btn-outline-danger btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>API ilə Mesaj Göndər
+                        </a>
                     </div>
                 </div>
             </div>

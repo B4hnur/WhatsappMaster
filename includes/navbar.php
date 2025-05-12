@@ -22,6 +22,29 @@
                         <a class="nav-link" href="templates.php"><i class="fas fa-file-alt me-1"></i>Şablonlar</a>
                     </li>
                     
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="whatsappDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="whatsapp_connect.php">
+                                    <i class="fas fa-qrcode me-1"></i>QR ilə bağlan
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="whatsapp_api_status.php">
+                                    <i class="fas fa-cloud me-1"></i>API Statusu
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="send_whatsapp_api.php">
+                                    <i class="fas fa-paper-plane me-1"></i>API ilə mesaj göndər
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
                     <?php
                     // Check WhatsApp connection status
                     try {
