@@ -1,0 +1,114 @@
+/* Custom Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* WhatsApp theme colors */
+:root {
+    --whatsapp-green: #25D366;
+    --whatsapp-teal: #128C7E;
+    --whatsapp-light: #DCF8C6;
+}
+
+.bg-whatsapp {
+    background-color: var(--whatsapp-teal);
+}
+
+.text-whatsapp {
+    color: var(--whatsapp-teal);
+}
+
+.btn-whatsapp {
+    background-color: var(--whatsapp-green);
+    color: white;
+}
+
+.btn-whatsapp:hover {
+    background-color: var(--whatsapp-teal);
+    color: white;
+}
+
+/* Message bubble styling */
+.message-bubble {
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    max-width: 85%;
+    position: relative;
+}
+
+.message-sent {
+    background-color: var(--whatsapp-light);
+    margin-left: auto;
+    border-bottom-right-radius: 0;
+}
+
+/* Card styling */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Custom form styling */
+.form-control:focus {
+    border-color: var(--whatsapp-teal);
+    box-shadow: 0 0 0 0.25rem rgba(18, 140, 126, 0.25);
+}
+
+/* Dashboard statistics */
+.stat-card {
+    border-left: 5px solid var(--whatsapp-teal);
+}
+
+/* Contact list styling */
+.contact-list .list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.contact-list .list-group-item:hover {
+    background-color: rgba(220, 248, 198, 0.3);
+}
+
+/* Message template styling */
+.template-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-card:hover {
+    background-color: #f8f9fa;
+}
+
+/* Custom checkboxes for contact selection */
+.custom-checkbox .form-check-input:checked {
+    background-color: var(--whatsapp-teal);
+    border-color: var(--whatsapp-teal);
+}
+
+/* Custom loader */
+.whatsapp-loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--whatsapp-green);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .message-bubble {
+        max-width: 90%;
+    }
+}
